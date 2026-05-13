@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Laboratory Management System</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#0052cc;--green:#2da44e;--orange:#fb8500;--red:#dc2626;
+  --navy:#001f3f;--bg:#f5f7fa;--border:#e0e7ff;--dark:#1a202c;--muted:#718096;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.05);--shadow-md:0 4px 6px rgba(0,0,0,.1);--shadow-lg:0 10px 15px rgba(0,0,0,.1)
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--dark);overflow-x:hidden}
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--navy) 0%,#003d7a 100%);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-md);position:sticky;top:0;z-index:100}
+.logo{color:#fff;font-size:1.5rem;font-weight:700}
+.sys-name{color:rgba(255,255,255,.9);font-size:.95rem}
+.hdr-left,.hdr-right{display:flex;align-items:center;gap:1.5rem}
+.user-info{display:flex;align-items:center;gap:.75rem;color:#fff;font-size:.9rem}
+.avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+.logout-btn{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);padding:.5rem 1rem;border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .3s}
+.logout-btn:hover{background:rgba(255,255,255,.2)}
+/* LAYOUT */
+.container{display:flex;min-height:calc(100vh - 70px)}
+/* SIDEBAR */
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--border);padding:1.5rem 0;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:1rem 1.5rem;color:var(--muted);cursor:pointer;transition:all .3s;border-left:3px solid transparent;font-size:.95rem}
+.nav-item:hover{background:var(--bg);color:var(--blue);border-left-color:var(--blue)}
+.nav-item.active{background:rgba(0,82,204,.05);color:var(--blue);border-left-color:var(--blue);font-weight:600}
+/* MAIN */
+.main{flex:1;padding:2rem;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:1.8rem;font-weight:700;margin-bottom:.4rem}
+.page-sub{color:var(--muted);font-size:.95rem;margin-bottom:1.5rem}
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1.5rem;margin-bottom:2rem}
+.metric-card{background:#fff;padding:1.5rem;border-radius:12px;box-shadow:var(--shadow-md);cursor:pointer;position:relative;overflow:hidden;transition:all .3s cubic-bezier(.4,0,.2,1)}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;transition:height .3s}
+.metric-card.blue::before{background:var(--blue)}
+.metric-card.green::before{background:var(--green)}
+.metric-card.orange::before{background:var(--orange)}
+.metric-card.red::before{background:var(--red)}
+.metric-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-lg)}
+.metric-card:hover::before{height:6px}
+.metric-label{font-size:.8rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem}
+.metric-row{display:flex;justify-content:space-between;align-items:center}
+.metric-value{font-size:2.4rem;font-weight:700}
+.metric-icon{font-size:1.5rem;opacity:.8}
+.metric-hint{font-size:.75rem;color:var(--blue);margin-top:.5rem;opacity:.7}
+/* CHARTS */
+.charts-section{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem}
+.chart-card,.emergency-card{background:#fff;padding:2rem;border-radius:12px;box-shadow:var(--shadow-md)}
+.emergency-card{border-left:4px solid var(--orange)}
+.chart-title,.emergency-title{font-size:1.1rem;font-weight:700;margin-bottom:1.5rem;color:var(--dark)}
+.emergency-title{display:flex;align-items:center;gap:.5rem}
+.chart-container{display:flex;justify-content:center;align-items:center;min-height:260px}
+.donut-wrap{position:relative;width:180px;height:180px}
+.donut-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.center-val{font-size:1.4rem;font-weight:700}.center-lbl{font-size:.75rem;color:var(--muted)}
+.legend{display:flex;flex-direction:column;gap:.75rem;margin-left:1.5rem}
+.legend-item{display:flex;align-items:center;gap:.75rem;font-size:.9rem}
+.legend-dot{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+.legend-pct{color:var(--muted);font-size:.8rem;margin-left:auto}
+.emergency-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.stat-block{text-align:center;padding:1rem;background:var(--bg);border-radius:8px;transition:all .3s}
+.stat-block:hover{background:rgba(251,133,0,.1);transform:translateY(-4px)}
+.stat-num{font-size:2rem;font-weight:700;color:var(--orange);margin-bottom:.4rem}
+.stat-lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+/* TABLES */
+.tbl-wrapper{background:#fff;border-radius:12px;box-shadow:var(--shadow-md);overflow:hidden}
+.tbl-inner{padding:1.5rem}
+.tbl-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem}
+.tbl-title{font-size:1.1rem;font-weight:700}
+.tbl-meta{display:flex;gap:1.5rem;font-size:.85rem;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+thead{background:#f8fafc;border-bottom:2px solid var(--border)}
+th{padding:.85rem 1rem;text-align:left;font-weight:600;font-size:.8rem;color:var(--dark);text-transform:uppercase;letter-spacing:.5px}
+td{padding:.85rem 1rem;border-bottom:1px solid var(--border);font-size:.88rem}
+tbody tr:hover{background:var(--bg);transition:background .2s}
+tbody tr:last-child td{border-bottom:none}
+/* BADGES */
+.badge{padding:.25rem .75rem;border-radius:4px;font-weight:600;font-size:.78rem;display:inline-block}
+.badge-normal{background:#e3f2fd;color:#1976d2}
+.badge-urgent{background:#fff3e0;color:#f57c00}
+.badge-emergency{background:#ffebee;color:#d32f2f}
+.badge-pending{background:#fff8e1;color:#f9a825}
+.badge-inprog{background:#e8f5e9;color:#388e3c}
+.badge-completed{background:#e8f5e9;color:#2da44e}
+.badge-delayed{background:#ffebee;color:#d32f2f}
+.status-delayed{color:var(--red);font-weight:600}
+.status-completed{color:var(--green);font-weight:600}
+/* BUTTONS */
+.btn{padding:.6rem 1.25rem;border:none;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:600;transition:all .3s;display:inline-flex;align-items:center;gap:.4rem}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:#0040a3}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{background:#238636}
+.btn-secondary{background:var(--bg);color:var(--dark);border:1px solid var(--border)}.btn-secondary:hover{background:#e2e8f0}
+.btn-sm{padding:.4rem .85rem;font-size:.82rem}
+.action-btns{display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap}
+.btn-action{padding:.85rem 1.5rem;border:2px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;display:flex;align-items:center;gap:.6rem;transition:all .3s}
+.btn-action:hover{border-color:var(--blue);background:rgba(0,82,204,.05);color:var(--blue)}
+/* ALERT ICON */
+.alert-icon{font-size:1.2rem;cursor:pointer;transition:transform .2s}.alert-icon:hover{transform:scale(1.2)}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:12px;padding:2rem;max-width:500px;width:90%;box-shadow:var(--shadow-lg)}
+.modal-hdr{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
+.modal-ico{width:56px;height:56px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:1.8rem}
+.modal-ttl{font-size:1.2rem;font-weight:700}
+.modal-row{display:flex;padding:.5rem 0;border-bottom:1px solid var(--border)}
+.modal-row:last-child{border-bottom:none}
+.modal-lbl{font-weight:600;width:140px;flex-shrink:0}
+.modal-val{color:var(--muted);flex:1}
+.modal-ftr{display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem}
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+.form-group{display:flex;flex-direction:column;gap:.4rem}
+.form-group.full{grid-column:1/-1}
+label{font-size:.85rem;font-weight:600;color:var(--dark)}
+input,select,textarea{padding:.7rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;transition:border .2s;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+textarea{resize:vertical;min-height:80px}
+.form-card{background:#fff;border-radius:12px;box-shadow:var(--shadow-md);padding:2rem;margin-bottom:1.5rem}
+.form-section-title{font-size:1rem;font-weight:700;margin-bottom:1.25rem;padding-bottom:.5rem;border-bottom:2px solid var(--border);color:var(--blue)}
+/* MASTER DATA TABS */
+.tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:.6rem 1.25rem;border:2px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .3s}
+.tab.active,.tab:hover{border-color:var(--blue);color:var(--blue);background:rgba(0,82,204,.05)}
+.tab-content{display:none}.tab-content.active{display:block}
+/* SEARCH BAR */
+.search-bar{display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.search-bar input{flex:1;min-width:200px}
+.search-bar select{padding:.7rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;min-width:140px}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+@media(max-width:900px){
+  .charts-section{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .sidebar{width:68px}
+  .nav-item span:last-child{display:none}
+  .nav-item{justify-content:center;padding:1rem .5rem}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="hdr-left">
+    <div class="logo">SAP</div>
+    <div class="sys-name">Smart Laboratory Management System</div>
+  </div>
+  <div class="hdr-right">
+    <div class="user-info">
+      <span>User: DOCTOR01</span>
+      <div class="avatar">D</div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">Log off</button>
+  </div>
+</header>
+
+<div class="container">
+  <aside class="sidebar">
+    <div class="nav-item active" onclick="goPage('dashboard',this)"><span>📊</span><span>Dashboard</span></div>
+    <div class="nav-item" onclick="goPage('requests',this)"><span>📝</span><span>Test Request</span></div>
+    <div class="nav-item" onclick="goPage('pending',this)"><span>⏳</span><span>Pending Tests</span></div>
+    <div class="nav-item" onclick="goPage('completed',this)"><span>✅</span><span>Completed Tests</span></div>
+    <div class="nav-item" onclick="goPage('delayed',this)"><span>⚠️</span><span>Delayed Tests</span></div>
+    <div class="nav-item" onclick="goPage('notifications',this)"><span>🔔</span><span>Notifications</span></div>
+    <div class="nav-item" onclick="goPage('reports',this)"><span>📈</span><span>Reports</span></div>
+    <div class="nav-item" onclick="goPage('master',this)"><span>⚙️</span><span>Master Data</span></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div id="dashboard" class="page active">
+      <h1 class="page-title">Dashboard Overview</h1>
+      <p class="page-sub">Real-time overview of laboratory test status. Click a card to view details.</p>
+      <div class="metrics-grid">
+        <div class="metric-card blue" onclick="goPageByName('all-tests')">
+          <div class="metric-label">Total Tests</div>
+          <div class="metric-row"><div class="metric-value">1250</div><div class="metric-icon">🧪</div></div>
+          <div class="metric-hint">Click to view all →</div>
+        </div>
+        <div class="metric-card green" onclick="goPageByName('completed')">
+          <div class="metric-label">Completed Tests</div>
+          <div class="metric-row"><div class="metric-value">980</div><div class="metric-icon">✅</div></div>
+          <div class="metric-hint">Click to view →</div>
+        </div>
+        <div class="metric-card orange" onclick="goPageByName('pending')">
+          <div class="metric-label">Pending Tests</div>
+          <div class="metric-row"><div class="metric-value">210</div><div class="metric-icon">⏳</div></div>
+          <div class="metric-hint">Click to view →</div>
+        </div>
+        <div class="metric-card red" onclick="goPageByName('delayed')">
+          <div class="metric-label">Delayed Tests</div>
+          <div class="metric-row"><div class="metric-value">60</div><div class="metric-icon">⚠️</div></div>
+          <div class="metric-hint">Click to view →</div>
+        </div>
+      </div>
+
+      <div class="charts-section">
+        <div class="chart-card">
+          <div class="chart-title">Test Status Overview</div>
+          <div class="chart-container">
+            <div class="donut-wrap">
+              <svg class="donut-svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="30" fill="none" stroke="#2da44e" stroke-width="15" stroke-dasharray="147.65 188.4" stroke-linecap="round"/>
+                <circle cx="50" cy="50" r="30" fill="none" stroke="#fb8500" stroke-width="15" stroke-dasharray="31.6 188.4" stroke-dashoffset="-147.65" stroke-linecap="round"/>
+                <circle cx="50" cy="50" r="30" fill="none" stroke="#dc2626" stroke-width="15" stroke-dasharray="9.15 188.4" stroke-dashoffset="-179.25" stroke-linecap="round"/>
+              </svg>
+              <div class="donut-center"><div class="center-val">78.4%</div><div class="center-lbl">Completed</div></div>
+            </div>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#2da44e"></div><span>Completed</span><span class="legend-pct">78.4%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#fb8500"></div><span>Pending</span><span class="legend-pct">16.8%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div><span>Delayed</span><span class="legend-pct">4.8%</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="emergency-card">
+          <div class="emergency-title">🚨 Emergency Tests</div>
+          <div class="emergency-stats">
+            <div class="stat-block"><div class="stat-num">15</div><div class="stat-lbl">Total</div></div>
+            <div class="stat-block"><div class="stat-num">5</div><div class="stat-lbl">In Progress</div></div>
+            <div class="stat-block"><div class="stat-num">2</div><div class="stat-lbl">Delayed</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ALL TESTS (from dashboard card) ===== -->
+    <div id="all-tests" class="page">
+      <h1 class="page-title">🧪 All Tests</h1>
+      <p class="page-sub">Complete list of all 1250 laboratory tests (sample records shown).</p>
+      <div class="search-bar">
+        <input type="text" placeholder="Search by Test ID, Patient ID or Test Name..." oninput="filterTable('allTestsTbl',this.value)">
+        <select onchange="filterTable('allTestsTbl',document.querySelector('#all-tests .search-bar input').value,this.value)">
+          <option value="">All Status</option>
+          <option value="Completed">Completed</option>
+          <option value="Pending">Pending</option>
+          <option value="In Progress">In Progress</option>
+          <option value="DELAYED">Delayed</option>
+        </select>
+      </div>
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <table id="allTestsTbl">
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Patient Name</th><th>Test Name</th><th>Priority</th><th>Requested On</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>TST1001</td><td>P10023</td><td>Arjun Mehta</td><td>CBC Blood Test</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 09:15</td><td><span class="status-delayed">DELAYED</span></td></tr>
+            <tr><td>TST1002</td><td>P10024</td><td>Priya Sharma</td><td>Urine Routine</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 10:00</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1003</td><td>P10025</td><td>Ravi Kumar</td><td>Blood Sugar Fasting</td><td><span class="badge badge-urgent">Urgent</span></td><td>04.05.2024 10:30</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1004</td><td>P10026</td><td>Sunita Verma</td><td>Thyroid Profile</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 11:00</td><td><span class="badge badge-pending">Pending</span></td></tr>
+            <tr><td>TST1005</td><td>P10045</td><td>Deepak Nair</td><td>Liver Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 10:20</td><td><span class="status-delayed">DELAYED</span></td></tr>
+            <tr><td>TST1006</td><td>P10046</td><td>Kavitha Pillai</td><td>Dengue NS1 Antigen</td><td><span class="badge badge-emergency">Emergency</span></td><td>05.05.2024 11:00</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1007</td><td>P10047</td><td>Anand Iyer</td><td>HbA1c</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 11:15</td><td><span class="badge badge-inprog">In Progress</span></td></tr>
+            <tr><td>TST1008</td><td>P10067</td><td>Meena Joshi</td><td>Kidney Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 11:30</td><td><span class="status-delayed">DELAYED</span></td></tr>
+            <tr><td>TST1009</td><td>P10068</td><td>Suresh Patil</td><td>Vitamin D</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 12:00</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1010</td><td>P10069</td><td>Lakshmi Rao</td><td>Iron Studies</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 12:30</td><td><span class="badge badge-pending">Pending</span></td></tr>
+            <tr><td>TST1011</td><td>P10070</td><td>Vikram Singh</td><td>ESR Test</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 13:00</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1012</td><td>P10089</td><td>Anjali Gupta</td><td>X-Ray Chest</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 12:05</td><td><span class="status-delayed">DELAYED</span></td></tr>
+            <tr><td>TST1013</td><td>P10090</td><td>Ramesh Babu</td><td>Uric Acid</td><td><span class="badge badge-normal">Normal</span></td><td>06.05.2024 09:00</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1014</td><td>P10091</td><td>Pooja Desai</td><td>Platelet Count</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 09:30</td><td><span class="badge badge-inprog">In Progress</span></td></tr>
+            <tr><td>TST1015</td><td>P10103</td><td>Sanjay Kulkarni</td><td>Lipid Profile</td><td><span class="badge badge-emergency">Emergency</span></td><td>06.05.2024 08:00</td><td><span class="status-delayed">DELAYED</span></td></tr>
+            <tr><td>TST1016</td><td>P10104</td><td>Divya Reddy</td><td>COVID Antigen Test</td><td><span class="badge badge-emergency">Emergency</span></td><td>06.05.2024 08:30</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1017</td><td>P10115</td><td>Harish Narayanan</td><td>ECG Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 09:10</td><td><span class="status-delayed">DELAYED</span></td></tr>
+            <tr><td>TST1018</td><td>P10116</td><td>Geetha Menon</td><td>Calcium Test</td><td><span class="badge badge-normal">Normal</span></td><td>06.05.2024 10:00</td><td><span class="badge badge-pending">Pending</span></td></tr>
+            <tr><td>TST1019</td><td>P10117</td><td>Arun Krishnan</td><td>Hepatitis B Surface Antigen</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 10:30</td><td><span class="status-completed">Completed</span></td></tr>
+            <tr><td>TST1020</td><td>P10118</td><td>Nisha Thomas</td><td>Electrolyte Panel</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 11:00</td><td><span class="badge badge-pending">Pending</span></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ===== TEST REQUEST ===== -->
+    <div id="requests" class="page">
+      <h1 class="page-title">📝 New Test Request</h1>
+      <p class="page-sub">Submit a new laboratory test request for a patient.</p>
+      <div class="form-card">
+        <div class="form-section-title">Patient Information</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Patient ID *</label><input type="text" placeholder="e.g. P10201" id="fPatID"></div>
+          <div class="form-group"><label>Patient Name *</label><input type="text" placeholder="Full name" id="fPatName"></div>
+          <div class="form-group"><label>Date of Birth</label><input type="date" id="fDOB"></div>
+          <div class="form-group"><label>Gender</label>
+            <select id="fGender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select>
+          </div>
+          <div class="form-group"><label>Ward / Dept</label>
+            <select id="fWard"><option value="">Select Ward</option><option>General Ward</option><option>ICU</option><option>Emergency</option><option>OPD</option><option>Maternity</option></select>
+          </div>
+          <div class="form-group"><label>Bed No.</label><input type="text" placeholder="e.g. B-204" id="fBed"></div>
+        </div>
+        <div class="form-section-title">Test Details</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Test Category *</label>
+            <select id="fCat" onchange="loadTests(this.value)"><option value="">Select Category</option><option>Haematology</option><option>Biochemistry</option><option>Microbiology</option><option>Radiology</option><option>Cardiology</option><option>Immunology</option></select>
+          </div>
+          <div class="form-group"><label>Test Name *</label>
+            <select id="fTest"><option value="">Select Category First</option></select>
+          </div>
+          <div class="form-group"><label>Priority *</label>
+            <select id="fPriority"><option value="">Select</option><option>Normal</option><option>Urgent</option><option>Emergency</option></select>
+          </div>
+          <div class="form-group"><label>Requested By (Doctor)</label><input type="text" value="Dr. DOCTOR01" id="fDoc"></div>
+          <div class="form-group"><label>Sample Type</label>
+            <select id="fSample"><option value="">Select</option><option>Blood</option><option>Urine</option><option>Stool</option><option>Sputum</option><option>Swab</option><option>N/A</option></select>
+          </div>
+          <div class="form-group"><label>Requested Date & Time</label><input type="datetime-local" id="fDate"></div>
+          <div class="form-group full"><label>Clinical Notes / Remarks</label><textarea id="fNotes" placeholder="Enter relevant clinical notes or special instructions..."></textarea></div>
+        </div>
+        <div style="display:flex;gap:1rem;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+          <button class="btn btn-primary" onclick="submitRequest()">Submit Request</button>
+        </div>
+      </div>
+
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <div class="tbl-header">
+          <div class="tbl-title">Recent Test Requests (Today)</div>
+          <div class="tbl-meta"><span>Date: 07.05.2024</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Patient Name</th><th>Test Name</th><th>Priority</th><th>Requested By</th><th>Date & Time</th><th>Status</th></tr></thead>
+          <tbody id="requestTbody">
+            <tr><td>TST1021</td><td>P10201</td><td>Rahul Sharma</td><td>CBC Blood Test</td><td><span class="badge badge-normal">Normal</span></td><td>Dr. DOCTOR01</td><td>07.05.2024 08:00</td><td><span class="badge badge-pending">Pending</span></td></tr>
+            <tr><td>TST1022</td><td>P10202</td><td>Sneha Patel</td><td>Liver Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>Dr. DOCTOR01</td><td>07.05.2024 08:30</td><td><span class="badge badge-inprog">In Progress</span></td></tr>
+            <tr><td>TST1023</td><td>P10203</td><td>Manoj Tiwari</td><td>Thyroid Profile</td><td><span class="badge badge-normal">Normal</span></td><td>Dr. Singh</td><td>07.05.2024 09:00</td><td><span class="badge badge-pending">Pending</span></td></tr>
+            <tr><td>TST1024</td><td>P10204</td><td>Rekha Nambiar</td><td>Lipid Profile</td><td><span class="badge badge-emergency">Emergency</span></td><td>Dr. Rao</td><td>07.05.2024 09:15</td><td><span class="badge badge-inprog">In Progress</span></td></tr>
+            <tr><td>TST1025</td><td>P10205</td><td>Vijay Anand</td><td>ECG Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>Dr. DOCTOR01</td><td>07.05.2024 09:45</td><td><span class="badge badge-pending">Pending</span></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ===== PENDING TESTS ===== -->
+    <div id="pending" class="page">
+      <h1 class="page-title">⏳ Pending Tests</h1>
+      <p class="page-sub">Tests currently awaiting processing or in-progress.</p>
+      <div class="search-bar">
+        <input type="text" placeholder="Search..." oninput="filterTable('pendingTbl',this.value)">
+        <select onchange="filterTable('pendingTbl',document.querySelector('#pending .search-bar input').value,this.value)">
+          <option value="">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option>
+        </select>
+      </div>
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <div class="tbl-header">
+          <div class="tbl-title">⏳ Pending & In-Progress Tests</div>
+          <div class="tbl-meta"><span>Total: 210</span><span>Date: 07.05.2024</span></div>
+        </div>
+        <table id="pendingTbl">
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Patient Name</th><th>Test Name</th><th>Priority</th><th>Requested On</th><th>Expected By</th><th>Status</th><th>Lab Tech</th></tr></thead>
+          <tbody>
+            <tr><td>TST1004</td><td>P10026</td><td>Sunita Verma</td><td>Thyroid Profile</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 11:00</td><td>04.05.2024 17:00</td><td><span class="badge badge-pending">Pending</span></td><td>Tech A</td></tr>
+            <tr><td>TST1007</td><td>P10047</td><td>Anand Iyer</td><td>HbA1c</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 11:15</td><td>05.05.2024 17:15</td><td><span class="badge badge-inprog">In Progress</span></td><td>Tech B</td></tr>
+            <tr><td>TST1010</td><td>P10069</td><td>Lakshmi Rao</td><td>Iron Studies</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 12:30</td><td>05.05.2024 16:30</td><td><span class="badge badge-pending">Pending</span></td><td>Tech C</td></tr>
+            <tr><td>TST1014</td><td>P10091</td><td>Pooja Desai</td><td>Platelet Count</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 09:30</td><td>06.05.2024 13:30</td><td><span class="badge badge-inprog">In Progress</span></td><td>Tech A</td></tr>
+            <tr><td>TST1018</td><td>P10116</td><td>Geetha Menon</td><td>Calcium Test</td><td><span class="badge badge-normal">Normal</span></td><td>06.05.2024 10:00</td><td>06.05.2024 16:00</td><td><span class="badge badge-pending">Pending</span></td><td>Tech D</td></tr>
+            <tr><td>TST1020</td><td>P10118</td><td>Nisha Thomas</td><td>Electrolyte Panel</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 11:00</td><td>06.05.2024 15:00</td><td><span class="badge badge-pending">Pending</span></td><td>Tech B</td></tr>
+            <tr><td>TST1021</td><td>P10201</td><td>Rahul Sharma</td><td>CBC Blood Test</td><td><span class="badge badge-normal">Normal</span></td><td>07.05.2024 08:00</td><td>07.05.2024 14:00</td><td><span class="badge badge-pending">Pending</span></td><td>Tech C</td></tr>
+            <tr><td>TST1022</td><td>P10202</td><td>Sneha Patel</td><td>Liver Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>07.05.2024 08:30</td><td>07.05.2024 12:30</td><td><span class="badge badge-inprog">In Progress</span></td><td>Tech A</td></tr>
+            <tr><td>TST1023</td><td>P10203</td><td>Manoj Tiwari</td><td>Thyroid Profile</td><td><span class="badge badge-normal">Normal</span></td><td>07.05.2024 09:00</td><td>07.05.2024 15:00</td><td><span class="badge badge-pending">Pending</span></td><td>Tech D</td></tr>
+            <tr><td>TST1024</td><td>P10204</td><td>Rekha Nambiar</td><td>Lipid Profile</td><td><span class="badge badge-emergency">Emergency</span></td><td>07.05.2024 09:15</td><td>07.05.2024 11:15</td><td><span class="badge badge-inprog">In Progress</span></td><td>Tech B</td></tr>
+            <tr><td>TST1025</td><td>P10205</td><td>Vijay Anand</td><td>ECG Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>07.05.2024 09:45</td><td>07.05.2024 13:45</td><td><span class="badge badge-pending">Pending</span></td><td>Tech C</td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ===== COMPLETED TESTS ===== -->
+    <div id="completed" class="page">
+      <h1 class="page-title">✅ Completed Tests</h1>
+      <p class="page-sub">Tests that have been successfully completed and reports generated.</p>
+      <div class="search-bar">
+        <input type="text" placeholder="Search..." oninput="filterTable('completedTbl',this.value)">
+        <select onchange="filterTable('completedTbl',document.querySelector('#completed .search-bar input').value,this.value)">
+          <option value="">All Priority</option><option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Emergency">Emergency</option>
+        </select>
+      </div>
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <div class="tbl-header">
+          <div class="tbl-title">✅ Completed Tests</div>
+          <div class="tbl-meta"><span>Total Completed: 980</span><span>Date: 07.05.2024</span></div>
+        </div>
+        <table id="completedTbl">
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Patient Name</th><th>Test Name</th><th>Priority</th><th>Requested On</th><th>Completed On</th><th>Report ID</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>TST1002</td><td>P10024</td><td>Priya Sharma</td><td>Urine Routine</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 10:00</td><td>04.05.2024 15:30</td><td>RPT20024</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10024','Urine Routine','RPT20024')">👁 View</button></td></tr>
+            <tr><td>TST1003</td><td>P10025</td><td>Ravi Kumar</td><td>Blood Sugar Fasting</td><td><span class="badge badge-urgent">Urgent</span></td><td>04.05.2024 10:30</td><td>04.05.2024 13:00</td><td>RPT20025</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10025','Blood Sugar Fasting','RPT20025')">👁 View</button></td></tr>
+            <tr><td>TST1006</td><td>P10046</td><td>Kavitha Pillai</td><td>Dengue NS1 Antigen</td><td><span class="badge badge-emergency">Emergency</span></td><td>05.05.2024 11:00</td><td>05.05.2024 13:30</td><td>RPT20046</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10046','Dengue NS1 Antigen','RPT20046')">👁 View</button></td></tr>
+            <tr><td>TST1009</td><td>P10068</td><td>Suresh Patil</td><td>Vitamin D</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 12:00</td><td>05.05.2024 17:00</td><td>RPT20068</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10068','Vitamin D','RPT20068')">👁 View</button></td></tr>
+            <tr><td>TST1011</td><td>P10070</td><td>Vikram Singh</td><td>ESR Test</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 13:00</td><td>05.05.2024 16:00</td><td>RPT20070</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10070','ESR Test','RPT20070')">👁 View</button></td></tr>
+            <tr><td>TST1013</td><td>P10090</td><td>Ramesh Babu</td><td>Uric Acid</td><td><span class="badge badge-normal">Normal</span></td><td>06.05.2024 09:00</td><td>06.05.2024 14:00</td><td>RPT20090</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10090','Uric Acid','RPT20090')">👁 View</button></td></tr>
+            <tr><td>TST1016</td><td>P10104</td><td>Divya Reddy</td><td>COVID Antigen Test</td><td><span class="badge badge-emergency">Emergency</span></td><td>06.05.2024 08:30</td><td>06.05.2024 10:00</td><td>RPT20104</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10104','COVID Antigen Test','RPT20104')">👁 View</button></td></tr>
+            <tr><td>TST1019</td><td>P10117</td><td>Arun Krishnan</td><td>Hepatitis B Surface Antigen</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 10:30</td><td>06.05.2024 13:00</td><td>RPT20117</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10117','Hepatitis B Surface Antigen','RPT20117')">👁 View</button></td></tr>
+            <tr><td>TST1026</td><td>P10119</td><td>Kiran Bhat</td><td>Stool Routine</td><td><span class="badge badge-normal">Normal</span></td><td>06.05.2024 13:00</td><td>06.05.2024 17:30</td><td>RPT20119</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10119','Stool Routine','RPT20119')">👁 View</button></td></tr>
+            <tr><td>TST1027</td><td>P10120</td><td>Mythili Suresh</td><td>Peripheral Blood Smear</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 14:00</td><td>06.05.2024 17:00</td><td>RPT20120</td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10120','Peripheral Blood Smear','RPT20120')">👁 View</button></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ===== DELAYED TESTS ===== -->
+    <div id="delayed" class="page">
+      <h1 class="page-title">⚠️ Delayed Test Alert</h1>
+      <p class="page-sub">System automatically detects delayed reports and generates alerts.</p>
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <div class="tbl-header">
+          <div class="tbl-title">🚨 Delayed Tests</div>
+          <div class="tbl-meta"><span>Date: 07.05.2024</span><span>Time: 11:30:45</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Test Name</th><th>Priority</th><th>Requested On</th><th>Expected Time</th><th>Elapsed</th><th>Status</th><th>Alert</th></tr></thead>
+          <tbody>
+            <tr><td>TST1001</td><td>P10023</td><td>CBC Blood Test</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 09:15</td><td>04.05.2024 14:15</td><td>26:15:45</td><td><span class="status-delayed">DELAYED</span></td><td><span class="alert-icon" onclick="showAlert('TST1001','CBC Blood Test')">🔔</span></td></tr>
+            <tr><td>TST1005</td><td>P10045</td><td>Liver Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 10:20</td><td>05.05.2024 16:20</td><td>19:10:45</td><td><span class="status-delayed">DELAYED</span></td><td><span class="alert-icon" onclick="showAlert('TST1005','Liver Function Test')">🔔</span></td></tr>
+            <tr><td>TST1008</td><td>P10067</td><td>Kidney Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 11:30</td><td>05.05.2024 17:30</td><td>17:00:45</td><td><span class="status-delayed">DELAYED</span></td><td><span class="alert-icon" onclick="showAlert('TST1008','Kidney Function Test')">🔔</span></td></tr>
+            <tr><td>TST1012</td><td>P10089</td><td>X-Ray Chest</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 12:05</td><td>05.05.2024 18:05</td><td>16:25:45</td><td><span class="status-delayed">DELAYED</span></td><td><span class="alert-icon" onclick="showAlert('TST1012','X-Ray Chest')">🔔</span></td></tr>
+            <tr><td>TST1015</td><td>P10103</td><td>Lipid Profile</td><td><span class="badge badge-emergency">Emergency</span></td><td>06.05.2024 08:00</td><td>06.05.2024 10:00</td><td>03:30:45</td><td><span class="status-delayed">DELAYED</span></td><td><span class="alert-icon" onclick="showAlert('TST1015','Lipid Profile')">🔔</span></td></tr>
+            <tr><td>TST1017</td><td>P10115</td><td>ECG Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 09:10</td><td>06.05.2024 13:10</td><td>02:20:45</td><td><span class="status-delayed">DELAYED</span></td><td><span class="alert-icon" onclick="showAlert('TST1017','ECG Test')">🔔</span></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ===== NOTIFICATIONS ===== -->
+    <div id="notifications" class="page">
+      <h1 class="page-title">🔔 Doctor Notifications</h1>
+      <p class="page-sub">Doctors are automatically notified when reports are completed.</p>
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <div class="tbl-header"><div class="tbl-title">Recent Notifications</div></div>
+        <table>
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Test Name</th><th>Report ID</th><th>Completed On</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>TST1001</td><td>P10023</td><td>CBC Blood Test</td><td>RPT20023</td><td>07.05.2024 10:30 AM</td><td><span class="status-completed">Completed</span></td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10023','CBC Blood Test','RPT20023')">👁 View</button></td></tr>
+            <tr><td>TST1005</td><td>P10045</td><td>Liver Function Test</td><td>RPT20045</td><td>07.05.2024 11:25 AM</td><td><span class="status-completed">Completed</span></td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10045','Liver Function Test','RPT20045')">👁 View</button></td></tr>
+            <tr><td>TST1008</td><td>P10067</td><td>Kidney Function Test</td><td>RPT20067</td><td>07.05.2024 02:45 PM</td><td><span class="status-completed">Completed</span></td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10067','Kidney Function Test','RPT20067')">👁 View</button></td></tr>
+            <tr><td>TST1012</td><td>P10089</td><td>X-Ray Chest</td><td>RPT20089</td><td>07.05.2024 03:15 PM</td><td><span class="status-completed">Completed</span></td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10089','X-Ray Chest','RPT20089')">👁 View</button></td></tr>
+            <tr><td>TST1015</td><td>P10103</td><td>Lipid Profile</td><td>RPT20103</td><td>07.05.2024 04:20 PM</td><td><span class="status-completed">Completed</span></td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10103','Lipid Profile','RPT20103')">👁 View</button></td></tr>
+            <tr><td>TST1017</td><td>P10115</td><td>ECG Test</td><td>RPT20115</td><td>07.05.2024 05:00 PM</td><td><span class="status-completed">Completed</span></td><td><button class="btn btn-primary btn-sm" onclick="showNotification('P10115','ECG Test','RPT20115')">👁 View</button></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ===== REPORTS ===== -->
+    <div id="reports" class="page">
+      <h1 class="page-title">📈 Reports and Analysis</h1>
+      <p class="page-sub">System generates analytical reports for better decision making.</p>
+      <div class="tbl-wrapper"><div class="tbl-inner">
+        <div class="tbl-header">
+          <div class="tbl-title">Delayed Test Report (ALV Output)</div>
+        </div>
+        <table>
+          <thead><tr><th>Test ID</th><th>Patient ID</th><th>Test Name</th><th>Priority</th><th>Requested On</th><th>Expected Time</th><th>Actual Time</th><th>Delay (HH:MM)</th></tr></thead>
+          <tbody>
+            <tr><td>TST1001</td><td>P10023</td><td>CBC Blood Test</td><td><span class="badge badge-normal">Normal</span></td><td>04.05.2024 09:15</td><td>04.05.2024 14:15</td><td>05.05.2024 16:31</td><td>26:15</td></tr>
+            <tr><td>TST1005</td><td>P10045</td><td>Liver Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 10:20</td><td>05.05.2024 16:20</td><td>06.05.2024 11:31</td><td>19:11</td></tr>
+            <tr><td>TST1008</td><td>P10067</td><td>Kidney Function Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>05.05.2024 11:30</td><td>05.05.2024 17:30</td><td>06.05.2024 10:31</td><td>17:01</td></tr>
+            <tr><td>TST1012</td><td>P10089</td><td>X-Ray Chest</td><td><span class="badge badge-normal">Normal</span></td><td>05.05.2024 12:05</td><td>05.05.2024 18:05</td><td>06.05.2024 10:31</td><td>16:26</td></tr>
+            <tr><td>TST1015</td><td>P10103</td><td>Lipid Profile</td><td><span class="badge badge-emergency">Emergency</span></td><td>06.05.2024 08:00</td><td>06.05.2024 10:00</td><td>06.05.2024 13:31</td><td>03:31</td></tr>
+            <tr><td>TST1017</td><td>P10115</td><td>ECG Test</td><td><span class="badge badge-urgent">Urgent</span></td><td>06.05.2024 09:10</td><td>06.05.2024 13:10</td><td>06.05.2024 15:31</td><td>02:21</td></tr>
+          </tbody>
+        </table>
+      </div></div>
+      <div class="action-btns">
+        <button class="btn-action" onclick="handleExport()"><span>📊</span> Export to Excel</button>
+        <button class="btn-action" onclick="handlePrint()"><span>🖨️</span> Print</button>
+        <button class="btn-action" onclick="goPageByName('dashboard')"><span>⬅️</span> Back</button>
+      </div>
+    </div>
+
+    <!-- ===== MASTER DATA ===== -->
+    <div id="master" class="page">
+      <h1 class="page-title">⚙️ Master Data</h1>
+      <p class="page-sub">Configure system master data — tests, users, departments, and SLA settings.</p>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('tabTests',this)">🧪 Test Catalogue</div>
+        <div class="tab" onclick="switchTab('tabDepts',this)">🏥 Departments</div>
+        <div class="tab" onclick="switchTab('tabUsers',this)">👤 Users</div>
+        <div class="tab" onclick="switchTab('tabSLA',this)">⏱ SLA Settings</div>
+      </div>
+
+      <!-- Test Catalogue -->
+      <div id="tabTests" class="tab-content active">
+        <div class="tbl-wrapper"><div class="tbl-inner">
+          <div class="tbl-header"><div class="tbl-title">Test Catalogue</div><button class="btn btn-primary btn-sm">+ Add Test</button></div>
+          <table>
+            <thead><tr><th>Test Code</th><th>Test Name</th><th>Category</th><th>Sample Type</th><th>Normal TAT (hrs)</th><th>Urgent TAT (hrs)</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>CBC001</td><td>CBC Blood Test</td><td>Haematology</td><td>Blood</td><td>5</td><td>2</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>BIO002</td><td>Liver Function Test</td><td>Biochemistry</td><td>Blood</td><td>6</td><td>3</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>BIO003</td><td>Kidney Function Test</td><td>Biochemistry</td><td>Blood</td><td>6</td><td>3</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>RAD001</td><td>X-Ray Chest</td><td>Radiology</td><td>N/A</td><td>4</td><td>1</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>BIO004</td><td>Lipid Profile</td><td>Biochemistry</td><td>Blood</td><td>5</td><td>2</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>CAR001</td><td>ECG Test</td><td>Cardiology</td><td>N/A</td><td>4</td><td>1</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>BIO005</td><td>Thyroid Profile (T3/T4/TSH)</td><td>Biochemistry</td><td>Blood</td><td>6</td><td>3</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>IMM001</td><td>Dengue NS1 Antigen</td><td>Immunology</td><td>Blood</td><td>4</td><td>2</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>MIC001</td><td>Urine Routine</td><td>Microbiology</td><td>Urine</td><td>3</td><td>1</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>BIO006</td><td>Blood Sugar (Fasting/PP)</td><td>Biochemistry</td><td>Blood</td><td>3</td><td>1</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>BIO007</td><td>Vitamin D (25-OH)</td><td>Biochemistry</td><td>Blood</td><td>8</td><td>4</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>HAE001</td><td>HbA1c</td><td>Haematology</td><td>Blood</td><td>6</td><td>3</td><td><span class="badge badge-completed">Active</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Departments -->
+      <div id="tabDepts" class="tab-content">
+        <div class="tbl-wrapper"><div class="tbl-inner">
+          <div class="tbl-header"><div class="tbl-title">Departments</div><button class="btn btn-primary btn-sm">+ Add Dept</button></div>
+          <table>
+            <thead><tr><th>Dept Code</th><th>Department Name</th><th>HOD</th><th>Contact</th><th>Beds</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>GEN001</td><td>General Ward</td><td>Dr. Anand Kumar</td><td>Ext: 1001</td><td>50</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>ICU001</td><td>ICU / Critical Care</td><td>Dr. Priya Menon</td><td>Ext: 1002</td><td>20</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>EMR001</td><td>Emergency</td><td>Dr. Ravi Pillai</td><td>Ext: 1003</td><td>15</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>OPD001</td><td>OPD</td><td>Dr. Sunita Verma</td><td>Ext: 1004</td><td>—</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>MAT001</td><td>Maternity</td><td>Dr. Kavitha Nair</td><td>Ext: 1005</td><td>30</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>LAB001</td><td>Laboratory</td><td>Dr. Suresh Rao</td><td>Ext: 1006</td><td>—</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>RAD001</td><td>Radiology</td><td>Dr. Deepak Iyer</td><td>Ext: 1007</td><td>—</td><td><span class="badge badge-completed">Active</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Users -->
+      <div id="tabUsers" class="tab-content">
+        <div class="tbl-wrapper"><div class="tbl-inner">
+          <div class="tbl-header"><div class="tbl-title">System Users</div><button class="btn btn-primary btn-sm">+ Add User</button></div>
+          <table>
+            <thead><tr><th>User ID</th><th>Name</th><th>Role</th><th>Department</th><th>Email</th><th>Last Login</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>DOCTOR01</td><td>Dr. Anand Kumar</td><td>Doctor</td><td>General Ward</td><td>anand@hospital.com</td><td>07.05.2024 08:00</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>DOCTOR02</td><td>Dr. Priya Menon</td><td>Doctor</td><td>ICU</td><td>priya@hospital.com</td><td>07.05.2024 07:30</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>DOCTOR03</td><td>Dr. Ravi Pillai</td><td>Doctor</td><td>Emergency</td><td>ravi@hospital.com</td><td>06.05.2024 22:00</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>TECH_A</td><td>Ramesh Nair</td><td>Lab Technician</td><td>Laboratory</td><td>ramesh@hospital.com</td><td>07.05.2024 08:15</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>TECH_B</td><td>Meena Iyer</td><td>Lab Technician</td><td>Laboratory</td><td>meena@hospital.com</td><td>07.05.2024 08:10</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>TECH_C</td><td>Suresh Babu</td><td>Lab Technician</td><td>Laboratory</td><td>suresh@hospital.com</td><td>07.05.2024 08:20</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>TECH_D</td><td>Lakshmi Rao</td><td>Lab Technician</td><td>Radiology</td><td>lakshmi@hospital.com</td><td>07.05.2024 09:00</td><td><span class="badge badge-completed">Active</span></td></tr>
+              <tr><td>ADMIN01</td><td>Vijaya Krishnan</td><td>Admin</td><td>Management</td><td>admin@hospital.com</td><td>07.05.2024 07:45</td><td><span class="badge badge-completed">Active</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- SLA Settings -->
+      <div id="tabSLA" class="tab-content">
+        <div class="tbl-wrapper"><div class="tbl-inner">
+          <div class="tbl-header"><div class="tbl-title">SLA (Turnaround Time) Settings</div><button class="btn btn-primary btn-sm">Edit SLA</button></div>
+          <table>
+            <thead><tr><th>Category</th><th>Normal TAT</th><th>Urgent TAT</th><th>Emergency TAT</th><th>Alert After</th><th>Escalate After</th></tr></thead>
+          <tbody>
+            <tr><td>Haematology</td><td>5 hrs</td><td>2 hrs</td><td>1 hr</td><td>80% of TAT</td><td>100% of TAT</td></tr>
+            <tr><td>Biochemistry</td><td>6 hrs</td><td>3 hrs</td><td>1.5 hrs</td><td>80% of TAT</td><td>100% of TAT</td></tr>
+            <tr><td>Microbiology</td><td>24 hrs</td><td>12 hrs</td><td>4 hrs</td><td>80% of TAT</td><td>100% of TAT</td></tr>
+            <tr><td>Radiology</td><td>4 hrs</td><td>1 hr</td><td>30 min</td><td>80% of TAT</td><td>100% of TAT</td></tr>
+            <tr><td>Cardiology</td><td>4 hrs</td><td>1 hr</td><td>30 min</td><td>80% of TAT</td><td>100% of TAT</td></tr>
+            <tr><td>Immunology</td><td>4 hrs</td><td>2 hrs</td><td>1 hr</td><td>80% of TAT</td><td>100% of TAT</td></tr>
+          </tbody>
+          </table>
+        </div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== NOTIFICATION MODAL ===== -->
+<div class="modal-overlay" id="notifModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-ico">✅</div>
+      <div><div class="modal-ttl">Lab Report is Ready!</div></div>
+    </div>
+    <div class="modal-row"><span class="modal-lbl">Patient ID</span><span class="modal-val" id="mPatID"></span></div>
+    <div class="modal-row"><span class="modal-lbl">Test Name</span><span class="modal-val" id="mTestName"></span></div>
+    <div class="modal-row"><span class="modal-lbl">Report ID</span><span class="modal-val" id="mRptID"></span></div>
+    <div class="modal-row"><span class="modal-lbl">Completed On</span><span class="modal-val">07.05.2024 11:25 AM</span></div>
+    <div class="modal-ftr">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-success" onclick="closeModal()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const testsByCategory = {
+  Haematology:['CBC Blood Test','HbA1c','ESR Test','Peripheral Blood Smear','Platelet Count','Bleeding Time / Clotting Time'],
+  Biochemistry:['Liver Function Test','Kidney Function Test','Lipid Profile','Blood Sugar Fasting','Thyroid Profile','Vitamin D','Calcium Test','Uric Acid','Electrolyte Panel','Iron Studies'],
+  Microbiology:['Urine Routine','Stool Routine','Blood Culture','Sputum Culture','Sensitivity Test'],
+  Radiology:['X-Ray Chest','X-Ray Abdomen','CT Scan Head','MRI Brain','Ultrasound Abdomen'],
+  Cardiology:['ECG Test','2D Echocardiogram','Holter Monitoring','Stress Test (TMT)'],
+  Immunology:['Dengue NS1 Antigen','COVID Antigen Test','Hepatitis B Surface Antigen','HIV Test','Widal Test']
+};
+
+function goPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.closest('.nav-item').classList.add('active');
+  document.querySelector('.main').scrollTop = 0;
+}
+
+function goPageByName(id) {
+  const navMap = {dashboard:0,requests:1,pending:2,completed:3,delayed:4,notifications:5,reports:6,master:7,'all-tests':-1};
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(n => n.classList.remove('active'));
+  const idx = navMap[id];
+  if (idx >= 0) navItems[idx].classList.add('active');
+  document.querySelector('.main').scrollTop = 0;
+}
+
+function switchTab(id, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function showNotification(patID, testName, rptID) {
+  document.getElementById('mPatID').textContent = patID;
+  document.getElementById('mTestName').textContent = testName;
+  document.getElementById('mRptID').textContent = rptID;
+  document.getElementById('notifModal').classList.add('active');
+}
+
+function closeModal() { document.getElementById('notifModal').classList.remove('active'); }
+
+function showAlert(testID, testName) {
+  alert(`🔔 Alert — Test ${testID}: ${testName}\n\nThis test has exceeded the expected completion time and requires immediate attention.`);
+}
+
+function loadTests(cat) {
+  const sel = document.getElementById('fTest');
+  sel.innerHTML = '<option value="">Select Test</option>';
+  (testsByCategory[cat] || []).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+}
+
+function clearForm() {
+  ['fPatID','fPatName','fDOB','fGender','fWard','fBed','fCat','fTest','fPriority','fDoc','fSample','fDate','fNotes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('fDoc').value = 'Dr. DOCTOR01';
+}
+
+function submitRequest() {
+  const id = document.getElementById('fPatID').value.trim();
+  const name = document.getElementById('fPatName').value.trim();
+  const test = document.getElementById('fTest').value;
+  const pri = document.getElementById('fPriority').value;
+  if (!id || !name || !test || !pri) { alert('Please fill in all required fields (*).'); return; }
+  const now = new Date();
+  const fmt = d => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const newID = 'TST' + (1030 + Math.floor(Math.random()*100));
+  const priMap = {Normal:'badge-normal',Urgent:'badge-urgent',Emergency:'badge-emergency'};
+  const row = document.getElementById('requestTbody').insertRow(0);
+  row.style.background='#e8f5e9';
+  row.innerHTML = `<td>${newID}</td><td>${id}</td><td>${name}</td><td>${test}</td><td><span class="badge ${priMap[pri]}">${pri}</span></td><td>Dr. DOCTOR01</td><td>${fmt(now)}</td><td><span class="badge badge-pending">Pending</span></td>`;
+  setTimeout(()=>{ row.style.background=''; }, 2000);
+  alert(`✅ Test request submitted successfully!\nTest ID: ${newID}\nPatient: ${name}\nTest: ${test}`);
+  clearForm();
+}
+
+function filterTable(tblId, text, status) {
+  const rows = document.getElementById(tblId).querySelectorAll('tbody tr');
+  const q = (text||'').toLowerCase();
+  const s = (status||'').toLowerCase();
+  rows.forEach(r => {
+    const t = r.textContent.toLowerCase();
+    const matchQ = !q || t.includes(q);
+    const matchS = !s || t.includes(s);
+    r.style.display = matchQ && matchS ? '' : 'none';
+  });
+}
+
+function handleExport() { alert('📊 Exporting to Excel...\nFile: Delayed_Test_Report.xlsx'); }
+function handlePrint() { alert('🖨️ Opening print dialog...'); window.print(); }
+function handleLogout() { alert('Logging out...\nUser DOCTOR01 has been logged out.'); }
+
+document.getElementById('notifModal').addEventListener('click', e => { if (e.target.id === 'notifModal') closeModal(); });
+
+// Set default datetime for request form
+const now = new Date(); const pad = n => String(n).padStart(2,'0');
+document.getElementById('fDate').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+</script>
+</body>
+</html>
